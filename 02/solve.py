@@ -36,6 +36,27 @@ def parse_line(line):
 	return int(id)
 
 
+def get_power(line):
+	cubes = {
+		'red' : 0,
+		'green' : 0,
+		'blue' : 0,
+	}
+	#print line
+	_, raw = line.split(':')
+	batches = re.split(',|;', raw)
+	#print batches
+	for batch in batches:
+		#print batch
+		count, col = batch.strip().split(' ')
+		#print col
+		#print count
+		#print cubes.get(col, 0)
+		if int(count) > cubes.get(col, 0):
+			cubes[col] = int(count)
+	return cubes['red'] * cubes['green'] * cubes['blue']
+
+
 def main():
 	lines = read(test_input)
 
@@ -47,6 +68,11 @@ def main():
 	print sum
 
 	# Part 2
+	sum = 0
+	for line in lines:
+		line = line.strip('\n')
+		sum = sum + get_power(line)
+	print sum
 
 
 if __name__ == "__main__":
