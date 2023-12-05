@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
 
+test_input = 'adventofcode.com_2023_day_1_input.txt'
+
+
 def read(filename):
 	file1 = open(filename, 'r')
 	lines = file1.readlines()
@@ -69,7 +72,7 @@ def process_line_part1(line):
 
 
 def main():
-	lines = read('adventofcode.com_2023_day_1_input.txt')
+	lines = read(test_input)
 
 	# Part 1
 	sum = 0
