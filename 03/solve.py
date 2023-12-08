@@ -16,6 +16,7 @@ def _debug(string):
 
 class Schematic:
 	_map = []
+	stars = {}
 	width = 0
 	height = 0
 
@@ -50,6 +51,14 @@ class Schematic:
 			return False
 		return self._is_digit(x, y)
 
+	def _add_star(self, x, y, val):
+		if self._map[y][x] == '*':
+			index = '%04d-%04d' % (x, y)
+			m = self.stars.get(index, None)
+			if m is None:
+				self.stars[index] = []
+			self.stars[index].append(val)
+
 	def _is_symbol(self, x, y):
 		if self._map[y][x] == '.':
 			return False
@@ -68,6 +77,31 @@ class Schematic:
 			if self.is_symbol(x, y):
 				return True
 		return False
+
+	def add_star_value(self, x0, x1, y, val):
+		xx0 = x0 - 1
+		if xx0 < 0:
+			xx0 = 0
+		xx1 = x1 + 1
+		if xx1 > self.width:
+			xx1 = self.width
+		
+		# check line y - 1
+		if y > 0:
+			#_debug_raw('-' + self.get_string(xx0, xx1, y+1))
+			for x in range(xx0, xx1):
+				self._add_star(x, y-1, val)
+
+		if x0 > 0:
+			self._add_star(x0-1, y, val)
+		if x1 < self.width:
+			self._add_star(x1, y, val)
+
+		# check line y + 1
+		if y < (self.height-1):
+			#_debug_raw('+' + self.get_string(xx0, xx1, y+1))
+			for x in range(xx0, xx1):
+				self._add_star(x, y+1, val)
 
 	def is_adjacent(self, x0, x1, y):
 		xx0 = x0 - 1
@@ -159,7 +193,30 @@ def main():
 		#_debug ('')
 	print sum
 
+
 	# Part 2
+	for y in range(0, schematic.height):
+		x = 0
+		while x < schematic.width:
+			if schematic.is_digit(x, y):
+				x0 = x
+				x = x + 1
+				while schematic.is_digit(x, y):
+					x = x + 1
+				x1 = x
+
+				val = schematic.get_value(x0, x1, y)
+				#_debug_raw(' ' + str(val) + ':')
+				schematic.add_star_value(x0, x1, y, val)
+			x = x + 1
+		#_debug ('')
+
+	sum = 0
+	for star in schematic.stars.values():
+		if len(star) == 2:
+			sum = sum + star[0] * star[1]
+	print sum
+
 
 
 if __name__ == "__main__":
