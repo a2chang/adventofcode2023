@@ -26,10 +26,10 @@ def parse_line(line):
 	w = winners.pop()
 	p = picks.pop()
 
-	count = 0
+	matches = 0
 	while True:
 		if w == p:
-			count = count + 1
+			matches = matches + 1
 		if p > w:
 			if len(picks) == 0:
 				break
@@ -38,9 +38,12 @@ def parse_line(line):
 			if len(winners) == 0:
 				break
 			w = winners.pop()
+	return matches
 
-	if count > 0:
-		return 2**(count-1)
+
+def get_points(matches):
+	if matches > 0:
+		return 2**(matches-1)
 	return 0
 
 
@@ -51,7 +54,8 @@ def main():
 	sum = 0
 	for line in lines:
 		line = line.strip('\n')
-		sum = sum + parse_line(line)
+		matches = parse_line(line)
+		sum = sum + get_points(matches)
 	print sum
 
 	# Part 2
