@@ -49,7 +49,13 @@ class Mapper():
 		while src < k:
 			i = i - 1
 			k = self._keys[i]
-		return src + self._map[self._keys[i]]
+		ret = src + self._map[self._keys[i]]
+
+		run = None
+		if (i + 1) < len(self._keys):
+			run = self._keys[i + 1] - src - 1
+
+		return ret, run
 
 	def dump(self):
 		print self._map
@@ -58,7 +64,7 @@ class Mapper():
 class Almanac():
 
 	def __init__(self):
-		self.seeds = []
+		self._seeds = []
 		self.map_names = [
 			'seed-to-soil',
 			'soil-to-fertilizer',
@@ -88,13 +94,13 @@ class Almanac():
 		#self.debug()
 
 	def debug(self):
-		print self.seeds
+		print self._seeds
 		for k in self._maps.iterkeys():
 			print k
 			self._maps.get(k).dump()
 
 	def _parse_seeds(self, line, _):
-		self.seeds = [ int(v) for v in line.split()[1:] ]
+		self._seeds = [ int(v) for v in line.split()[1:] ]
 
 	def _parse_map(self, line, mapper):
 		if mapper is None:
@@ -104,6 +110,12 @@ class Almanac():
 
 	def map(self, mapname, val):
 		return self._maps.get(mapname).map(val)
+
+	def get_seeds1(self):
+		return [ [ s, 1 ] for s in self._seeds ]
+
+	def get_seeds2(self):
+		return [ self._seeds[i:i+2] for i in range(0, len(self._seeds), 2) ]
 
 
 def test():
@@ -120,8 +132,36 @@ def test():
 	m.dump()
 
 	for i in range(150):
-		print ('%03d %03d' % (i, m.map(i)))
+		val, run = m.map(i)
+		if run is not None:
+			r = '%03d' % run
+		print ('%03d %03d / %s' % (i, val, r))
 
+
+def run_part(almanac, seed_func):
+	locmin = None
+	for seed0, l in seed_func():
+		seed = seed0
+		while seed < seed0 + l:
+			v = seed
+			skip = None
+
+			for n in almanac.map_names:
+				v1, run = almanac.map(n, v)
+				#print n, v, v1
+				v = v1
+				if run is not None:
+					if skip is None:
+						skip = run
+					elif run < skip:
+						skip = run
+			if locmin is None or v < locmin:
+				locmin = v
+
+			if skip is None:
+				continue
+			seed = seed + 1 + skip
+	return locmin
 
 def main():
 	#test()
@@ -132,17 +172,12 @@ def main():
 	almanac.parse(lines)
 
 	# Part 1
-	locmin = None
-	for v in almanac.seeds:
-		for n in almanac.map_names:
-			v1 = almanac.map(n, v)
-			#print n, v, v1
-			v = v1
-		if locmin is None or v < locmin:
-			locmin = v
+	locmin = run_part(almanac, almanac.get_seeds1)
 	print locmin
 
 	# Part 2
+	locmin = run_part(almanac, almanac.get_seeds2)
+	print locmin
 
 
 if __name__ == "__main__":
