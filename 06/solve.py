@@ -13,8 +13,12 @@ def read(filename):
 	return lines
 
 
-def parse_line(line):
+def parse_line1(line):
 	return [ eval(v) for v in line.split()[1:] ]
+
+
+def parse_line2(line):
+	return int(''.join(line.split()[1:]))
 
 
 def solve_quadratic(a, b, c):
@@ -32,8 +36,8 @@ def main():
 
 	# Part 1
 	params = tuple(zip(
-				parse_line(lines[0]),
-				parse_line(lines[1])
+				parse_line1(lines[0]),
+				parse_line1(lines[1])
 			 ))
 
 	product = 1
@@ -53,6 +57,12 @@ def main():
 
 
 	# Part 2
+	time = parse_line2(lines[0])
+	distance = parse_line2(lines[1])
+	r1, r2 = solve_quadratic(1, -time, distance)
+	r1 = math.floor(r1) + 1
+	r2 = math.ceil(r2) - 1
+	print int(r2 - r1 + 1)
 
 
 if __name__ == "__main__":
