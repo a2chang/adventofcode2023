@@ -18,32 +18,47 @@ class Hand():
 	#	- 3 for high card
 	# - ccccc is the cards with the following mapping:
 	#	- c for T
-	#	- d for J
+	#	- d for J (Jack)
 	#	- e for Q
 	#	- f for K
 	#	- g for A
+	#	- d for 1 (Joker)
 
 	def __init__(self, cards, bid):
 		self._cards = cards
 		self._bid = bid
 		self._rankstr = None
 
-	def get_rankstr(self):
+	def get_rankstr(self, use_jokers = False):
 		# First map face cards to a sortable character
 		self._rankstr = self._cards
 		self._rankstr = self._rankstr.replace('T', 'c')
-		self._rankstr = self._rankstr.replace('J', 'd')
+		if not use_jokers:
+			self._rankstr = self._rankstr.replace('J', 'd')
+		else:
+			self._rankstr = self._rankstr.replace('J', '1')
 		self._rankstr = self._rankstr.replace('Q', 'e')
 		self._rankstr = self._rankstr.replace('K', 'f')
 		self._rankstr = self._rankstr.replace('A', 'g')
 
 		# Now determine hand type
 		m = {}
-		for i in list(self._cards):
-			m[i] = m.get(i, 0) + 1
+		jokers = 0
+		for i in list(self._rankstr):
+			if i == '1':
+				jokers = jokers + 1
+			else:
+				m[i] = m.get(i, 0) + 1
 		histo = m.values()
 		histo.sort(reverse = True)
 
+		# Add jokers
+		if len(histo) == 0:
+			histo.append(jokers)
+		else:
+			histo[0] = histo[0] + jokers
+
+		# Determine hand type
 		if histo[0] == 5:
 			self._rankstr = '9' + self._rankstr
 		elif histo[0] == 4:
@@ -70,18 +85,18 @@ def read(filename):
 	return lines
 
 
-def parse_line(line):
-	print line
+def parse_line(line, use_jokers = False):
+	#print line
 	cards, bid = line.split()
 	hand = Hand(cards, bid)
-	return hand.get_rankstr(), int(bid)
+	return hand.get_rankstr(use_jokers), int(bid)
 
 
-def parse(lines):
+def parse(lines, use_jokers = False):
 	hands = {}
 	for line in lines:
 		line = line.strip('\n')
-		hand, bid = parse_line(line)
+		hand, bid = parse_line(line, use_jokers)
 		hands[hand] = bid
 
 	winnings = 0
@@ -102,6 +117,7 @@ def main():
 	parse(lines)
 
 	# Part 2
+	parse(lines, True)
 
 
 if __name__ == "__main__":
