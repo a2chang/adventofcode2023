@@ -22,27 +22,37 @@ def parse_line(line):
 def parse(lines):
 	commands = lines[0].strip('\n')
 
+	locs = []
 	net = {}
 	for line in lines[2:]:
 		line = line.strip('\n')
 		src, l, r = parse_line(line)
 		net[src + ':L'] = l
 		net[src + ':R'] = r
+		locs.append(src)
 
-	return net, commands
+	return locs, net, commands
 
 
-def traverse(loc, net, commands):
+def get_wheres1(_):
+	return [ 'AAA' ]
+
+
+def done1(wheres):
+	return wheres[0] == 'ZZZ'
+
+
+def traverse(wheres, net, commands, endcond):
 	i = 0
 	steps = 0
-	while loc != 'ZZZ':
+	while not endcond(wheres):
 		steps = steps + 1
 		c = commands[i]
 		i = i + 1
 		if i == len(commands):
 			i = 0
 
-		loc = net.get('%s:%s' % (loc, c))
+		wheres = [ net.get('%s:%s' % (w, c)) for w in wheres ]
 	return steps
 
 
@@ -50,8 +60,8 @@ def main():
 	lines = read(test_input)
 
 	# Part 1
-	net, commands = parse(lines)
-	print traverse('AAA', net, commands)
+	locs, net, commands = parse(lines)
+	print traverse(get_wheres1(locs), net, commands, done1)
 
 	# Part 2
 
