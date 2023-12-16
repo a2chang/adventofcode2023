@@ -17,8 +17,10 @@ class Chart():
 		self._charmap = charmap
 		self._h = len(charmap)
 		self._w = len(charmap[0])
-		self._hdist = [ 2 ] * self._w
-		self._vdist = [ 2 ] * self._h
+		self._hdist1 = [ 2 ] * self._w
+		self._vdist1 = [ 2 ] * self._h
+		self._hdist2 = [ 1000000 ] * self._w
+		self._vdist2 = [ 1000000 ] * self._h
 
 		y = 0
 		while y < self._h:
@@ -28,8 +30,10 @@ class Chart():
 			while x < self._w:
 				c = line[x]
 				if c == '#':
-					self._hdist[x] = 1
-					self._vdist[y] = 1
+					self._hdist1[x] = 1
+					self._vdist1[y] = 1
+					self._hdist2[x] = 1
+					self._vdist2[y] = 1
 					self._galaxies.append( (x, y) )
 
 				x = x + 1
@@ -40,38 +44,46 @@ class Chart():
 		return sum(intervals[i0:i1])
 
 
-	def dist(self, g0, g1):
+	def dist(self, g0, g1, hdist, vdist):
 		x0, y0 = g0
 		x1, y1 = g1
 		d = 0
 
 		if x0 < x1:
-			d = d + self.get_dist(x0, x1, self._hdist)
+			d = d + self.get_dist(x0, x1, hdist)
 		else:
-			d = d + self.get_dist(x1, x0, self._hdist)
+			d = d + self.get_dist(x1, x0, hdist)
 
 		if y0 < y1:
-			d = d + self.get_dist(y0, y1, self._vdist)
+			d = d + self.get_dist(y0, y1, vdist)
 		else:
-			d = d + self.get_dist(y1, y0, self._vdist)
+			d = d + self.get_dist(y1, y0, vdist)
 
 		return d
 
 
-	def part1(self):
+	def partial(self, hdist, vdist):
 		sum = 0
 		num_galaxies = len(self._galaxies)
 		for i in range(num_galaxies):
 			g0 = self._galaxies[i]
 			for j in range(i+1, num_galaxies):
 				g1 = self._galaxies[j]
-				sum = sum + self.dist(g0, g1)
+				sum = sum + self.dist(g0, g1, hdist, vdist)
 		print sum
 
 
+	def part1(self):
+		self.partial(self._hdist1, self._vdist1)
+
+
+	def part2(self):
+		self.partial(self._hdist2, self._vdist2)
+
+
 	def test(self):
-		print self._hdist
-		print self._vdist
+		print self._hdist1
+		print self._vdist1
 		for x, y in self._galaxies:
 			print('galaxy %d-%d' % (x, y))
 
@@ -95,6 +107,7 @@ def main():
 	chart.part1()
 
 	# Part 2
+	chart.part2()
 
 
 if __name__ == "__main__":
