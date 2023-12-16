@@ -16,7 +16,7 @@ class Node():
 	}
 	def __init__(self, x, y, c = '.'):
 		# Character of node
-		self._c = c
+		self.c = c
 		# Location of node
 		self.x = x
 		self.y = y
@@ -29,9 +29,11 @@ class Node():
 		#print self.dirs
 		# Distance from start if not None
 		self.d = None
+		# Track which nodes are part of the loop
+		self.is_path = False
 
 	def debug(self):
-		print('%s (%d, %d) - %s' % (self._c, self.x, self.y, self.dirs))
+		print('%s (%d, %d) - %s' % (self.c, self.x, self.y, self.dirs))
 
 class Maze():
 
@@ -46,6 +48,7 @@ class Maze():
 		x, y = self._start
 
 		node = Node(x, y)
+		node.is_path = True
 		n = None
 		if x > 0:
 			n = self._map[y][x-1]
@@ -71,6 +74,8 @@ class Maze():
 			node.dirs = node.dirs + 's'
 		if node.w:
 			node.dirs = node.dirs + 'w'
+
+		node.c = Node.dirmap.keys()[Node.dirmap.values().index(node.dirs)]
 
 		self._map[y][x] = node
 
@@ -129,6 +134,7 @@ class Maze():
 		v0 = self._map[y][x].dirs[0]
 		n1 = self._map[y][x]
 		v1 = self._map[y][x].dirs[1]
+		n0.is_path = True
 
 		while n0.d is None or n1.d is None:
 			#print('%d - %d' % (n0.x, n0.y))
@@ -137,8 +143,44 @@ class Maze():
 			d = d + 1
 			n0, v0 = self.traverse(n0, v0)
 			n1, v1 = self.traverse(n1, v1)
+			n0.is_path = True
+			n1.is_path = True
 
 		print d - 1
+
+
+	def find_area(self):
+		area = 0
+		for row in self._map:
+			inside = False
+			visual = ''		# For debugging area detection
+			source = 'none'
+			for col in row:
+				if col.is_path:
+					if col.c == '|':
+						inside = not inside
+					elif col.c == 'L':
+						source = 'up'
+					elif col.c == 'F':
+						source = 'down'
+					elif col.c == 'J':
+						if source == 'down':
+							inside = not inside
+						source = None
+					elif col.c == '7':
+						if source == 'up':
+							inside = not inside
+						source = None
+					visual = visual + '*'
+				else:
+					#area = area + (1 if inside else 0)
+					if inside:
+						area = area + 1
+						visual = visual + '.'
+					else:
+						visual = visual + ' '
+			#print visual
+		print area
 
 
 	def test(self):
@@ -175,6 +217,7 @@ def main():
 	maze.find_loop()
 
 	# Part 2
+	maze.find_area()
 
 
 if __name__ == "__main__":
