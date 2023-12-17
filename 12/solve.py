@@ -52,10 +52,16 @@ def get_iteration(array, wcs, iter):
 
 
 def iterate(pattern, wcs, signature):
-	#print '------------------- %s' % signature
+	sig_order = sum(signature)
+	pat_order = len(pattern.replace('?', '').replace('.', ''))
+	bits_needed = sig_order - pat_order
+
+	#print '%s ------ %d %d %d' % (signature, sig_order, pat_order, bits_needed)
 	matches = 0
 	array = list(pattern)
 	for i in range(2**len(wcs)):
+		if bin(i).count('1') != bits_needed:
+			continue
 		pat = get_iteration(array, wcs, i)
 		sig = get_signature(pat)
 		#print sig
@@ -64,17 +70,21 @@ def iterate(pattern, wcs, signature):
 	return matches
 
 
-def parse(line):
+def parse(line, fudge = 1):
 	pattern, s = line.split()
 	signature = s.split(',')
-	signature = [ eval(s) for s in signature ]
+	signature = [ eval(s) for s in signature ] * fudge
 	#print pattern
 	#print signature
 
 	# Find wildcards
+	pattern = pattern * fudge
 	wcs = get_wcs(pattern)
 
 	# Iterate through all possible wildcard combinations
+	#print pattern
+	#print wcs
+	#print signature
 	return iterate(pattern, wcs, signature)
 
 
@@ -91,7 +101,13 @@ def main():
 	print sum
 
 	# Part 2
-	#maze.find_area()
+	sum = 0
+	for line in lines:
+		#n = parse(line, 5)
+		n = 0
+		#print n
+		sum = sum + n
+	print sum
 
 
 if __name__ == "__main__":
