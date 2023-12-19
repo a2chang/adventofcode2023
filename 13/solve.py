@@ -8,7 +8,6 @@ test_input = 'adventofcode.com_2023_day_13_input.txt'
 class Field():
 	def __init__(self):
 		self.rows = []
-		# Location of node
 		self.w = 0
 		self.h = 0
 		self.MAX_DIFF = 0
@@ -34,7 +33,7 @@ class Field():
 		for x, y in zip(self.rows[r0], self.rows[r1]):
 			if x != y:
 				d = d + 1
-				# Max diff we care about is 1
+				# Max diff we care about - if there count exceeds that, bail
 				if d > self.MAX_DIFF:
 					return d
 		return d
