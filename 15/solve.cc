@@ -1,7 +1,3 @@
-// Need to link with stdc++ library:
-//	gcc -lstdc++ solve.cc
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
