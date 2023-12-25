@@ -8,7 +8,6 @@
 //#define INFILE "test_input.text"
 #define MAX_W	144
 #define MAX_H	144
-#define MAX_SPAN  3
 
 //-----------------------------------------------------------------------------
 enum Direction
@@ -101,6 +100,9 @@ class Map
 public:
 	int w;
 	int h;
+
+	int min_span;
+	int max_span;
 private:
 	int x0;
 	int y0;
@@ -117,6 +119,8 @@ public:
 		h = 0;
 		min_loss = -1;
 		x0 = x1 = y0 = y1 = 0;
+		min_span = 0;
+		max_span = 0;
 	}
 
 	void ProcessLine(char *line);
@@ -176,12 +180,12 @@ void Map::Search(QueueItem *qi)
 	int loss = qi->loss;
 	int x = qi->x;
 	int y = qi->y;
-	int dir = qi->dir;
+	Direction dir = qi->dir;
 	int span = qi->span;
 
 	//printf("Search %d (%d, %d) %d : %d\n", loss, x, y, dir, span);
 
-	if ((x < 0) || (x >= w) || (y < 0) || (y >= h) || (span >= MAX_SPAN))
+	if ((x < 0) || (x >= w) || (y < 0) || (y >= h) || (span >= max_span))
 	{
 		return;
 	}
@@ -200,12 +204,39 @@ void Map::Search(QueueItem *qi)
 	{
 		return;
 	}
-	if ((x == x1) && (y == y1))
+	if ((x == x1) && (y == y1) && (span >= (min_span-1)))
 	{
 		if ((min_loss == -1) || (loss < min_loss))
 		{
 			min_loss = loss;
 		}
+		return;
+	}
+
+	if (span < (min_span-1))
+	{
+		int xx = x;
+		int yy = y;
+		switch (dir)
+		{
+		  case north:
+			yy--;
+			break;
+		  case south:
+			yy++;
+			break;
+		  case east:
+			xx++;
+			break;
+		  case west:
+			xx--;
+			break;
+		  default:
+			break;
+		}
+		int dloss = GetLoss(xx, yy);
+		QueueItem *item = new QueueItem(loss+dloss, xx, yy, dir, span+1);
+		q.Add(item);
 		return;
 	}
 
@@ -233,9 +264,10 @@ void Map::Search(QueueItem *qi)
 		  case west:
 			xx--;
 			break;
+		  default:
+			break;
 		}
-		int dloss;
-		dloss = GetLoss(xx, yy);
+		int dloss = GetLoss(xx, yy);
 		if (dloss != -1)
 		{
 			QueueItem *item = new QueueItem(loss+dloss, xx, yy,
@@ -310,24 +342,29 @@ void Map::Print()
 //-----------------------------------------------------------------------------
 void part1(Map *map)
 {
+	map->max_span = 3;
 	int loss = map->Start(0, 0, map->w-1, map->h-1);
-	printf("Min loss %d\n", loss);
+	printf("Part 1: Min loss %d\n", loss);
 }
 
 void part2(Map *map)
 {
-	int max_energy = 0;
-	printf("Max energy is %d\n", max_energy);
+	map->max_span = 10;
+	map->min_span = 4;
+	int loss = map->Start(0, 0, map->w-1, map->h-1);
+	printf("Part 2: Min loss %d\n", loss);
 }
 
 
 int main(int argc, char **argv)
 {
-	Map m;
-	m.Load(INFILE);
+	Map m1;
+	m1.Load(INFILE);
 	//m.Print();
+	part1(&m1);
 
-	part1(&m);
-	part2(&m);
+	Map m2;
+	m2.Load(INFILE);
+	part2(&m2);
 	return 0;
 }
