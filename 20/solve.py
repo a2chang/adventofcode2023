@@ -10,12 +10,12 @@ class Module(object):
 	FlipFlop = 'flip-flop'
 	Conjunction = 'conjunction'
 	Broadcast = 'broadcast'
-	RX = 'rx'
 
 	def __init__(self):
 		self._name = '<none>'
 		self._state = False
 		self.dests = []
+		self.low_count = 0
 
 	def parse(self, spec_str):
 		n, d = spec_str.split('>')
@@ -26,7 +26,13 @@ class Module(object):
 		#print self.dests
 		return self._name
 
-	def process(self, source, pulse):
+	def monitor_low(self, count):
+		self.low_count = count
+
+	def process(self, source, pulse, cycle):
+		if not pulse and (self.low_count > 0):
+			print('Module %s receive low on cycle %d' % (self._name, cycle))
+			self.low_count = self.low_count - 1
 		return pulse
 
 
@@ -38,10 +44,11 @@ class ModuleFF(Module):
 	def type(self):
 		return Module.FlipFlop
 
-	def process(self, source, pulse):
+	def process(self, source, pulse, cycle):
 		if pulse:
 			return None
 		self._state = not self._state
+		super(ModuleFF, self).process(source, pulse, cycle)
 		return self._state
 
 
@@ -60,9 +67,10 @@ class ModuleC(Module):
 	def add_src(self, source):
 		self.srcs[source] = False
 
-	def process(self, source, pulse):
+	def process(self, source, pulse, cycle):
 		self.srcs[source] = pulse
 		#print self.srcs
+		super(ModuleC, self).process(source, pulse, cycle)
 		return not all(self.srcs.values())
 
 
@@ -74,17 +82,8 @@ class ModuleB(Module):
 	def type(self):
 		return Module.Broadcast
 
-	def process(self, source, pulse):
-		return pulse
-
-
-class ModuleRX(Module):
-	def type(self):
-		return Module.RX
-
-	def process(self, source, pulse):
-		if pulse is False:
-			return None
+	def process(self, source, pulse, cycle):
+		super(ModuleB, self).process(source, pulse, cycle)
 		return pulse
 
 
@@ -92,6 +91,7 @@ class Machine():
 	broadcast = 'broadcaster'
 	button = 'button'
 	output = 'output'
+	monitor_iterations = 5
 
 	def __init__(self):
 		self.pulses = {
@@ -101,7 +101,7 @@ class Machine():
 		self._modules = {}
 		self.button_presses = 0
 		self.halt = False
-
+		self.monitor_list = []
 
 	def load(self, lines):
 		for line in lines:
@@ -120,16 +120,18 @@ class Machine():
 				if dmod is not None and (dmod.type() == Module.Conjunction):
 					dmod.add_src(n)
 
-
 	def _pretty(self, signal):
 		pulse = 'high' if signal[2] else 'low'
 		print('%s -%s-> %s' % (signal[0], pulse, signal[1]))
-
 
 	def queue_signal(self, signals, src, dest, pulse):
 		self.pulses[pulse] = self.pulses[pulse] + 1
 		signals.append( [ src, dest, pulse ] )
 
+	def monitor(self, module_name):
+		self.monitor_list.append(module_name)
+		mod = self._modules[module_name]
+		mod.monitor_low(Machine.monitor_iterations)
 
 	def press_button(self, haltable=False):
 		self.button_presses = self.button_presses + 1
@@ -147,33 +149,18 @@ class Machine():
 			mod = self._modules.get(signal[1])
 			if mod is None:
 				continue
-			res = mod.process(signal[0], signal[2])
+			res = mod.process(signal[0], signal[2], self.button_presses)
 			if res is not None:
 				for d in mod.dests:
 					self.queue_signal(signals, signal[1], d, res)
-			elif mod.type() == Module.RX:
-				print('Halt at %d presses' % self.button_presses)
-				self.halt = True
-				if haltable:
-					return
-
-	def prune(self, needed):
-		last = ''
-		while str(needed) != last:
-			last = str(needed)
-			print needed
-			for need in set(needed):
-				# Find all modules that signal need
-				for n in self._modules:
-					if need in self._modules[n].dests:
-						needed.add(n)
-
-		for n in self._modules.keys():
-			if n not in needed:
-				print('Pruned %s' % n)
-				self._modules.pop(n)
-			else:
-				print('Kept %s' % n)
+			
+			if haltable and (len(self.monitor_list) > 0):
+				remain = 0
+				for module_name in self.monitor_list:
+					mod = self._modules[module_name]
+					remain = remain + mod.low_count
+				if remain == 0:
+					self.halt = True
 
 
 	def score(self):
@@ -194,14 +181,20 @@ def main():
 	lines = read(test_input)
 	m = Machine()
 	m.load(lines)
-	#for i in range(1000):
+
+	m.monitor('vg')
+	m.monitor('nb')
+	m.monitor('vc')
+	m.monitor('ls')
+
 	for i in range(1000):
 		m.press_button()
 	print m.score()
 
-	m.prune( { Module.RX } )
 	while not m.halt:
-		m.press_button()
+		m.press_button(True)
+
+	# Answer to part 2 is LCM of low cycles on: nb vc vg ls
 
 
 if __name__ == "__main__":
