@@ -10,6 +10,7 @@ class Module(object):
 	FlipFlop = 'flip-flop'
 	Conjunction = 'conjunction'
 	Broadcast = 'broadcast'
+	RX = 'rx'
 
 	def __init__(self):
 		self._name = '<none>'
@@ -77,6 +78,15 @@ class ModuleB(Module):
 		return pulse
 
 
+class ModuleRX(Module):
+	def type(self):
+		return Module.RX
+
+	def process(self, source, pulse):
+		if pulse is False:
+			return None
+		return pulse
+
 
 class Machine():
 	broadcast = 'broadcaster'
@@ -89,6 +99,8 @@ class Machine():
 			True: 0,
 		}
 		self._modules = {}
+		self.button_presses = 0
+		self.halt = False
 
 
 	def load(self, lines):
@@ -119,7 +131,8 @@ class Machine():
 		signals.append( [ src, dest, pulse ] )
 
 
-	def press_button(self):
+	def press_button(self, haltable=False):
+		self.button_presses = self.button_presses + 1
 		# src, dest, pulse
 		#signals = [ [ Machine.button, Machine.broadcast, False ] ]
 		signals = []
@@ -138,6 +151,30 @@ class Machine():
 			if res is not None:
 				for d in mod.dests:
 					self.queue_signal(signals, signal[1], d, res)
+			elif mod.type() == Module.RX:
+				print('Halt at %d presses' % self.button_presses)
+				self.halt = True
+				if haltable:
+					return
+
+	def prune(self, needed):
+		last = ''
+		while str(needed) != last:
+			last = str(needed)
+			print needed
+			for need in set(needed):
+				# Find all modules that signal need
+				for n in self._modules:
+					if need in self._modules[n].dests:
+						needed.add(n)
+
+		for n in self._modules.keys():
+			if n not in needed:
+				print('Pruned %s' % n)
+				self._modules.pop(n)
+			else:
+				print('Kept %s' % n)
+
 
 	def score(self):
 		return self.pulses[True] * self.pulses[False]
@@ -160,8 +197,11 @@ def main():
 	#for i in range(1000):
 	for i in range(1000):
 		m.press_button()
-
 	print m.score()
+
+	m.prune( { Module.RX } )
+	while not m.halt:
+		m.press_button()
 
 
 if __name__ == "__main__":
