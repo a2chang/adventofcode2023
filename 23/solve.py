@@ -2,7 +2,7 @@
 
 
 test_input = 'adventofcode.com_2023_day_23_input.txt'
-#test_input = 'test_input.text'
+test_input = 'test_input.text'
 
 
 class Node():
@@ -67,7 +67,7 @@ class Maze():
 			if d in Maze.walkable[node.c]:
 				n = self._get_node(x + Maze.dx[d], y + Maze.dy[d])
 				if n is not None:
-					node.neighbours[d] = n
+					node.neighbours[d] = (n, 1)
 
 	def _link_nodes(self):
 		for y in range(self._h):
@@ -103,18 +103,18 @@ class Maze():
 			return 0
 
 		longest = None
-		for n in node.neighbours.values():
+		for (n, w) in node.neighbours.values():
 			if n.id not in visited:
 				visited.add(n.id)
 				dist = self.dfs_traverse(n, goal, visited)
 				if longest is None:
-					longest = dist
+					longest = dist + w
 				elif dist is not None:
-					if dist > longest:
-						longest = dist
+					if (dist + w) > longest:
+						longest = dist + w
 				visited.remove(n.id)
 
-		return longest + 1 if longest is not None else None
+		return longest if longest is not None else None
 
 	def iter_dfs_traverse(self, node, goal, _):
 		node_stack = [ node ]
@@ -164,8 +164,8 @@ class Maze():
 	def part1(self):
 		start = self._get_node(self._start[0], self._start[1])
 		end = self._get_node(self._end[0], self._end[1])
-		#return self.dfs_traverse(start, end, set())
-		return self.iter_dfs_traverse(start, end, set())
+		return self.dfs_traverse(start, end, set())
+		#return self.iter_dfs_traverse(start, end, set())
 		
 
 
