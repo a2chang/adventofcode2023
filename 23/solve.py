@@ -2,7 +2,7 @@
 
 
 test_input = 'adventofcode.com_2023_day_23_input.txt'
-test_input = 'test_input.text'
+#test_input = 'test_input.text'
 
 
 class Node():
@@ -17,6 +17,7 @@ class Node():
 		self.x = x
 		self.y = y
 		self.neighbours = {}
+		self.is_nexus = False
 
 	def debug(self):
 		print('%s (%d, %d) - %s' % (self.c, self.x, self.y, self.dirs))
@@ -43,6 +44,18 @@ class Maze():
 		'w' : 0,
 	}
 
+	@staticmethod
+	def reverse(dir):
+		if dir == 'n':
+			return 's'
+		elif dir == 's':
+			return 'n'
+		elif dir == 'e':
+			return 'w'
+		elif dir == 'w':
+			return 'e'
+		return None
+
 	def __init__(self):
 		self._charmap = None
 		self._map = None
@@ -50,7 +63,7 @@ class Maze():
 		self._w = 0
 		self._start = None
 		self._end = None
-		self.neighbours = {}
+		self.neighbours = {}	# dir: (node, weight)
 
 	def _get_node(self, x, y):
 		if (x < 0) or (x >= self._w):
@@ -63,18 +76,23 @@ class Maze():
 		node = self._map[y][x]
 		if node is None:
 			return
+		exits = 0
 		for d in 'nesw':
-			if d in Maze.walkable[node.c]:
-				n = self._get_node(x + Maze.dx[d], y + Maze.dy[d])
-				if n is not None:
+			n = self._get_node(x + Maze.dx[d], y + Maze.dy[d])
+			if n is not None:
+				if d in Maze.walkable[node.c]:
 					node.neighbours[d] = (n, 1)
+				if d in Maze.walkable['.']:
+					exits = exits + 1
+		if exits != 2:
+			node.is_nexus = True
 
 	def _link_nodes(self):
 		for y in range(self._h):
 			for x in range(self._w):
 				self._find_neighbours(x, y)
 
-	def load(self, charmap):
+	def load(self, charmap, ignore_slopes=False):
 		self._charmap = charmap
 		self._h = len(charmap)
 		self._w = len(charmap[0])
@@ -88,6 +106,8 @@ class Maze():
 			while x < self._w:
 				c = line[x]
 				if c in Maze.walkable:
+					if ignore_slopes:
+						c = '.'
 					self._map[y][x] = Node(x, y, c)
 					if y == 0:
 						self._start = (x, y)
@@ -98,6 +118,37 @@ class Maze():
 
 		self._link_nodes()
 
+	# Return nexus and length of path starting at node
+	def _trace(self, node, direction):
+		#print('==== trace %d.%s' % (node.id, direction))
+		dist = 0
+		while node.is_nexus is False:
+			#print('== %d / %d' % (node.id, dist))
+			adj = node.neighbours.keys()
+			if Maze.reverse(direction) in adj:
+				adj.remove(Maze.reverse(direction))
+			if len(adj) == 0:
+				return (None, 0)
+			direction = adj[0]
+			(node, weight) = node.neighbours.get(direction, (None, 0))
+			dist = dist + weight
+		return (node, dist)
+
+	def optimise(self):
+		for y in range(self._h):
+			for x in range(self._w):
+				node = self._map[y][x]
+				if node is not None and node.is_nexus:
+
+					adj_list = node.neighbours.keys()
+					for d in adj_list:
+						(neigh, w) = node.neighbours[d]
+						(target, dist) = self._trace(neigh, d)
+						if target is not None:
+							#print('>> Node %d.%s - %d / %d' % (node.id, d, target.id, w+dist))
+							node.neighbours[d] = (target, w + dist)
+
+
 	def dfs_traverse(self, node, goal, visited):
 		if node.id == goal.id:
 			return 0
@@ -107,11 +158,12 @@ class Maze():
 			if n.id not in visited:
 				visited.add(n.id)
 				dist = self.dfs_traverse(n, goal, visited)
-				if longest is None:
-					longest = dist + w
-				elif dist is not None:
-					if (dist + w) > longest:
+				if dist is not None:
+					if longest is None:
 						longest = dist + w
+					else:
+						if (dist + w) > longest:
+							longest = dist + w
 				visited.remove(n.id)
 
 		return longest if longest is not None else None
@@ -126,7 +178,6 @@ class Maze():
 		while len(node_stack) > 0:
 			node = node_stack.pop()
 			visited_str = visited_stack.pop()
-			#visited = eval(visited_stack.pop())
 			length = length_stack.pop()
 
 			#print('id=%d, visited=%s, len=%d' % (node.id, visited_str, length))
@@ -137,13 +188,13 @@ class Maze():
 				elif length > longest:
 					longest = length
 			else:
-				for n in node.neighbours.values():
+				for (n, w) in node.neighbours.values():
 					visited = eval(visited_str)
 					if n.id not in visited:
 						node_stack.append(n)
 						visited.add(n.id)
 						visited_stack.append(str(visited))
-						length_stack.append(length + 1)
+						length_stack.append(length + w)
 
 		return longest
 
@@ -158,6 +209,19 @@ class Maze():
 					line = line + ' '
 				else:
 					line = line + n.c
+			print line
+
+
+	def dump(self):
+		print('%s - %s' % (self._start, self._end))
+		for y in range(self._h):
+			line = ''
+			for x in range(self._w):
+				n = self._map[y][x]
+				if n is None:
+					line = line + '   '
+				else:
+					line = line + '%3d'%n.id
 			print line
 
 
@@ -181,8 +245,17 @@ def main():
 	maze = Maze()
 	maze.load(lines)
 	#maze.test()
-
+	#maze.dump()
+	maze.optimise()
 	d = maze.part1()
+	print d
+
+	maze2 = Maze()
+	maze2.load(lines, True)
+	#maze2.test()
+	#maze2.dump()
+	maze2.optimise()
+	d = maze2.part1()
 	print d
 
 
